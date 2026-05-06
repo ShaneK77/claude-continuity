@@ -105,8 +105,19 @@ Never tell the user "that was lost in compaction" without checking the JSONL fir
 ## Limitations
 
 - Rich conversational content (`session-state.md`) still requires Claude to write it — the hook can't generate it. The injection mechanism is reliable; the content quality depends on discipline.
-- If `PreCompact` is ever fixed in Claude Code, you can wire `session-state.md` writes to that hook instead and remove the behavioral dependency.
 - The 4-hour staleness threshold is configurable in `session-state-inject.sh` (`AGE` check).
+
+## When `PreCompact` is fixed
+
+The `PreCompact` hook has never fired on auto-compaction ([#50467](https://github.com/anthropics/claude-code/issues/50467)), which is why this project uses `UserPromptSubmit` instead. But `PreCompact` has a capability that `UserPromptSubmit` doesn't: **plain-text stdout from a `PreCompact` hook is passed to the summarization model as custom instructions** — the same channel as `/compact "<instructions>"`. This means a working `PreCompact` hook could embed the checkpoint *into the compacted summary itself*, rather than injecting over it after the fact.
+
+Once the bug is fixed, the upgrade path is:
+
+1. Add a `PreCompact` hook that reads `session-state.md` and emits plain text instructing the summarizer to preserve key state verbatim.
+2. Keep the `UserPromptSubmit` hook as a fallback for sessions where `PreCompact` doesn't fire.
+3. Optionally remove the `Stop` hook if `PreCompact` fires reliably enough to replace it.
+
+Until then, the `UserPromptSubmit` injection at position 5 (after the compacted summary) is the most reliable workaround available.
 
 ## Inspired by
 
