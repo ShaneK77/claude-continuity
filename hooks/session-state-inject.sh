@@ -10,12 +10,6 @@ TURN_FILE="$MEMORY_DIR/session-last-turn.md"
 # Nothing to inject if no state file exists
 [ -f "$STATE_FILE" ] || exit 0
 
-# Skip if checkpoint is stale (older than 4 hours) — avoids injecting
-# context from a previous session into every message of a new one
-MTIME=$(stat -f %m "$STATE_FILE" 2>/dev/null || stat -c %Y "$STATE_FILE" 2>/dev/null)
-NOW=$(date +%s)
-AGE=$(( NOW - MTIME ))
-[ "$AGE" -gt 14400 ] && exit 0
 
 python3 - "$STATE_FILE" "$TURN_FILE" <<'PYEOF'
 import json, sys, os
